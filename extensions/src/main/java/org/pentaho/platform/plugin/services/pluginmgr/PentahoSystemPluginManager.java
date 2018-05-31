@@ -30,6 +30,7 @@ import org.dom4j.Element;
 import org.pentaho.platform.api.engine.IConfiguration;
 import org.pentaho.platform.api.engine.IContentGenerator;
 import org.pentaho.platform.api.engine.IContentGeneratorInfo;
+import org.pentaho.platform.api.engine.IContentGeneratorInvoker;
 import org.pentaho.platform.api.engine.IContentInfo;
 import org.pentaho.platform.api.engine.IObjectCreator;
 import org.pentaho.platform.api.engine.IPentahoObjectFactory;
@@ -807,23 +808,36 @@ public class PentahoSystemPluginManager implements IPluginManager {
 
   @Override
   public IContentGenerator getContentGenerator( String type, String perspectiveName ) {
-    IContentGenerator cg = null;
+
+    final IContentGeneratorInvoker tempCgInvoker = PentahoSystem.get( IContentGeneratorInvoker.class );
+
+    if ( tempCgInvoker != null && tempCgInvoker.isSupportedContent( type, perspectiveName ) ) {
+      return tempCgInvoker.getContentGenerator();
+    } else {
+      return getPentahoSystemBasedContentGenerator( type, perspectiveName );
+    }
+  }
+
+  public IContentGenerator getPentahoSystemBasedContentGenerator( String type, String perspectiveName ) {
+
+    IContentGenerator contentGenerator = null;
     String beanId;
     if ( perspectiveName == null || perspectiveName.equals( DEFAULT_PERSPECTIVE ) ) {
       beanId = type;
     } else {
       beanId = type + "." + perspectiveName;
     }
-    IContentGenerator contentGenerator = PentahoSystem
-        .get( IContentGenerator.class, PentahoSessionHolder.getSession(),
-            Collections.singletonMap( CONTENT_TYPE, beanId ) );
+
+    contentGenerator = PentahoSystem
+      .get( IContentGenerator.class, PentahoSessionHolder.getSession(),
+        Collections.singletonMap( CONTENT_TYPE, beanId ) );
     if ( contentGenerator == null ) {
       contentGenerator = PentahoSystem
-          .get( IContentGenerator.class, PentahoSessionHolder.getSession(),
-              Collections.singletonMap( CONTENT_TYPE, perspectiveName ) );
+        .get( IContentGenerator.class, PentahoSessionHolder.getSession(),
+          Collections.singletonMap( CONTENT_TYPE, perspectiveName ) );
     }
 
-    return contentGenerator;
+   return contentGenerator;
   }
 
   @Override
